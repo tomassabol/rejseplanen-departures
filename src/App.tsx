@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { DateTime } from "luxon";
 import { getDepartures } from "./service/rejseplanen-service";
 import type { Departure } from "./service/types";
 
@@ -105,22 +106,21 @@ const DepartureInMinutes = ({
       (status.match(/(\d+)/)?.[1] ? parseInt(status.match(/(\d+)/)![1]) : 0);
   }
 
-  const now = new Date();
-  // departure time is in format HH:MM
-  const [hours, minutes] = departureTime.split(":");
-  const departure = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    parseInt(hours),
-    parseInt(minutes)
+  const now = DateTime.now().setZone("Europe/Copenhagen");
+  let departure = DateTime.fromFormat(departureTime, "HH:mm").setZone(
+    "Europe/Copenhagen"
   );
   let minutesUntilDeparture = Math.floor(
-    (departure.getTime() - now.getTime()) / 1000 / 60
+    departure.diff(now, "minutes").minutes
   );
 
   if (!isNaN(lateMinutes) && lateMinutes > 0) {
     minutesUntilDeparture += lateMinutes;
+  }
+
+  if (departure < now) {
+    departure = departure.plus({ days: 1 });
+    minutesUntilDeparture = Math.floor(departure.diff(now, "minutes").minutes);
   }
 
   return <div className="text-sm font-bold">{minutesUntilDeparture} min</div>;
